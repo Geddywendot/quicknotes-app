@@ -7,12 +7,23 @@ const noteCount = document.querySelector('#note-count');
 const searchInput = document.querySelector('#search-input');
 const clearAllBtn = document.querySelector('#clear-all-btn');
 
-let notes = [];
+let notes = JSON.parse(localStorage.getItem('quicknotes')) || [];
 
-function render() {
+function saveNotes() {
+    localStorage.setItem('quicknotes', JSON.stringify(notes));
+}
+
+function render(notesToRender = notes) {
     notesList.innerHTML = '';
     
-    notes.forEach(note => {
+    if (notesToRender.length === 0 && searchInput.value.trim() !== '') {
+        const emptyMsg = document.createElement('li');
+        emptyMsg.textContent = 'No notes match your search.';
+        emptyMsg.classList.add('empty-message');
+        notesList.appendChild(emptyMsg);
+    }
+    
+    notesToRender.forEach(note => {
         const li = document.createElement('li');
         
         if (note.category === 'Personal') li.classList.add('category-personal');
@@ -41,8 +52,9 @@ function render() {
         deleteBtn.textContent = 'Delete';
         deleteBtn.addEventListener('click', () => {
             notes = notes.filter(n => n.id !== note.id);
+            saveNotes();
             updateCount();
-            render();
+            render(notes.filter(n => n.text.toLowerCase().includes(searchInput.value.trim().toLowerCase())));
         });
         
         li.appendChild(textP);
@@ -89,11 +101,39 @@ noteForm.addEventListener('submit', (e) => {
     };
     
     notes.push(newNote);
+    saveNotes();
     updateCount();
     
     noteInput.value = '';
+    searchInput.value = '';
     
     render();
+});
+
+searchInput.addEventListener('input', () => {
+    const searchTerm = searchInput.value.trim().toLowerCase();
+    
+    if (searchTerm === '') {
+        render();
+        return;
+    }
+    
+    const filteredNotes = notes.filter(note => 
+        note.text.toLowerCase().includes(searchTerm)
+    );
+    
+    render(filteredNotes);
+});
+
+clearAllBtn.addEventListener('click', () => {
+    if (notes.length > 0) {
+        if (confirm("Delete all notes?")) {
+            notes = [];
+            saveNotes();
+            updateCount();
+            render();
+        }
+    }
 });
 
 updateCount();
